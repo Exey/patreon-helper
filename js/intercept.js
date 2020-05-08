@@ -185,7 +185,7 @@ function extractDownloadInfo(response) {
                     name += LostAndFoundSuffix;
                 }
 
-                addToDownloads(downloadPrefix + name + "/" + incl.attributes.file_name, incl.attributes.download_url);
+                addToDownloads(downloadPrefix + name + "/" + getFormattedDate() + incl.attributes.file_name, incl.attributes.download_url);
             }
 
             // attachments
@@ -206,11 +206,31 @@ function extractDownloadInfo(response) {
                     url: incl.attributes.url
                 });
 
-                addToDownloads(downloadPrefix + name + "/" + incl.attributes.name, incl.attributes.url);
+                addToDownloads(downloadPrefix + name + "/" + getFormattedDate() + incl.attributes.name, incl.attributes.url);
             }
         });
     }
 }
+
+// Workaround for files with duplicate names which not downloaded
+function getFormattedDate() {
+    var date = new Date();
+
+    var month = date.getMonth() + 1;
+    var day = date.getDate();
+    var hour = date.getHours();
+    var min = date.getMinutes();
+    var sec = date.getSeconds();
+
+    month = (month < 10 ? "0" : "") + month;
+    day = (day < 10 ? "0" : "") + day;
+    hour = (hour < 10 ? "0" : "") + hour;
+    min = (min < 10 ? "0" : "") + min;
+    sec = (sec < 10 ? "0" : "") + sec;
+    var str = date.getFullYear() + month + day + "_" +  hour  + min  + sec + "_";
+    return str;
+}
+
 
 function findMediaUrls(text) {
     let ret = [];

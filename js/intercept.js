@@ -83,12 +83,12 @@ function extractDownloadInfo(response) {
                     url: data.attributes.post_file.url
                 });
 
-                addToDownloads(downloadPrefix + name + "/" + data.attributes.post_file.name, data.attributes.post_file.url);
+                addToDownloads(downloadPrefix + name + "/" + getFormattedDate() + data.attributes.post_file.name, data.attributes.post_file.url);
 
                 /* search post text for media links */
                 if (data.attributes.hasOwnProperty('content') && data.attributes.content != null) {
                     findMediaUrls(data.attributes.content).forEach(url => {
-                        addToDownloads(downloadPrefix + name + "/" + url.split('/').pop().split('#')[0].split('?')[0], url);
+                        addToDownloads(downloadPrefix + name + "/" + getFormattedDate() + url.split('/').pop().split('#')[0].split('?')[0], url);
                     });
                 }
 

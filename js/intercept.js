@@ -12,6 +12,9 @@ var postsNameRegex = /\/join\/(\w+)\/checkout*/;
 var db;
 var names = {};
 
+
+
+
 function interceptStreamResponse(details) {
     if (debug) console.log("intercepting api request '" + details.requestId + "'");
 
@@ -40,6 +43,7 @@ function interceptStreamResponse(details) {
         decodeStreamResponse(responseDictionary);
     }
 }
+
 
 function decodeStreamResponse(responseDictionary) {
     for (const key in responseDictionary) {
@@ -70,8 +74,11 @@ function extractDownloadInfo(response) {
                 data.attributes.post_file.hasOwnProperty('name') &&
                 data.attributes.post_file.hasOwnProperty('url')
             ) {
+				
                 let match;
                 let name = unknownCreator;
+
+				let filenamePrefix = generatePrefix(data)
 
                 if (data.attributes.hasOwnProperty('upgrade_url') && (match = postsNameRegex.exec(data.attributes.upgrade_url)) !== null) {
                     name = match[1];
@@ -83,12 +90,12 @@ function extractDownloadInfo(response) {
                     url: data.attributes.post_file.url
                 });
 
-                addToDownloads(downloadPrefix + name + "/" + getFormattedDate() + data.attributes.post_file.name, data.attributes.post_file.url);
+                addToDownloads(downloadPrefix + name + "/" + filenamePrefix + data.attributes.post_file.name, data.attributes.post_file.url);
 
                 /* search post text for media links */
                 if (data.attributes.hasOwnProperty('content') && data.attributes.content != null) {
                     findMediaUrls(data.attributes.content).forEach(url => {
-                        addToDownloads(downloadPrefix + name + "/" + getFormattedDate() + url.split('/').pop().split('#')[0].split('?')[0], url);
+                        addToDownloads(downloadPrefix + name + "/" + filenamePrefix + url.split('/').pop().split('#')[0].split('?')[0], url);
                     });
                 }
 
@@ -143,7 +150,7 @@ function extractDownloadInfo(response) {
             }
         });
     }
-
+	
     /* search stream (home feed) for media */
     if (response.hasOwnProperty('included')) {
         response.included.forEach(incl => {
@@ -156,7 +163,7 @@ function extractDownloadInfo(response) {
                 if (debug) console.log("found user '"+ incl.id + "'", incl.attributes.full_name);
                 names[incl.id] = incl.attributes.full_name;
             }
-    
+			
             // /api/stream
             if (
                 incl.type == "media" && 
@@ -185,7 +192,7 @@ function extractDownloadInfo(response) {
                     name += LostAndFoundSuffix;
                 }
 
-                addToDownloads(downloadPrefix + name + "/" + getFormattedDate() + incl.attributes.file_name, incl.attributes.download_url);
+                addToDownloads(downloadPrefix + name + "/" + prefixesForIds[incl.id] + incl.attributes.file_name, incl.attributes.download_url);
             }
 
             // attachments
@@ -206,29 +213,23 @@ function extractDownloadInfo(response) {
                     url: incl.attributes.url
                 });
 
-                addToDownloads(downloadPrefix + name + "/" + getFormattedDate() + incl.attributes.name, incl.attributes.url);
+                addToDownloads(downloadPrefix + name + "/" + prefixesForIds[incl.id] + incl.attributes.name, incl.attributes.url);
             }
         });
     }
 }
 
-// Workaround for files with duplicate names which not downloaded
-function getFormattedDate() {
-    var date = new Date();
-
-    var month = date.getMonth() + 1;
-    var day = date.getDate();
-    var hour = date.getHours();
-    var min = date.getMinutes();
-    var sec = date.getSeconds();
-
-    month = (month < 10 ? "0" : "") + month;
-    day = (day < 10 ? "0" : "") + day;
-    hour = (hour < 10 ? "0" : "") + hour;
-    min = (min < 10 ? "0" : "") + min;
-    sec = (sec < 10 ? "0" : "") + sec;
-    var str = date.getFullYear() + month + day + "_" +  hour  + min  + sec + "_";
-    return str;
+// Workaround for files with duplicate names which not downloaded + better naming
+var prefixesForIds = {}
+function generatePrefix(data) {
+	let postDate = data.attributes.published_at.split('T')[0];
+	let postTitle = data.attributes.title.replace(/ /g,"_");
+	let count = data.relationships.images.data.length
+	let prefix = postDate+"_"+postTitle+"_"+count+"x_";
+		data.relationships.images.data.forEach(img => {
+		prefixesForIds[img.id] = prefix
+	});
+	return prefix
 }
 
 
